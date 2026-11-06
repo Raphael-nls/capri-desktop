@@ -274,7 +274,7 @@ She only catches the mouse on her actual body (pixel-precise): the rest of the s
   model, wander, possess your windows, jealous of other AIs (and closing their pages), react to my PC, her window style (Night City, or Classic: her
   first ones), language, start with Windows, hooks. At the very top: where you two stand.
 
-She speaks **French, English, Spanish, Brazilian Portuguese and Russian**, and picks the language of your system on her
+In this fork she speaks **English and Brazilian Portuguese** (Portuguese by default; French, Spanish and Russian were removed), and picks the language of your system on her
 own. You can choose another one in her menu.
 
 ## Install
@@ -537,3 +537,8 @@ paid access, paid orders), is not allowed. Versions up to 0.4.3 were under the M
 
 Fonts: Chakra Petch and JetBrains Mono, under the SIL Open Font License, via Fontsource.
 
+
+## This fork
+
+Personal fork: Brazilian Portuguese by default, a to-do list in her chat (`anota comprar café`, `minhas tarefas`,
+`concluí a tarefa 2`), and tests for the logic that doesn't need a window: `npm test`.

@@ -111,3 +111,60 @@ test('tasks: the list adds, numbers the open ones, finishes and clears', () => {
   assert.match(tasks.run({ kind: 'clear' }, 'pt'), /1 tarefa/);
   assert.equal(saved.length, 1);
 });
+
+const P = await import('../src/renderer/js/chat-patterns.js');
+
+test('chat patterns: timers and durations', () => {
+  assert.equal(P.duration('timer 10 minutos'), 10 * 60000);
+  assert.equal(P.duration('timer 1h30'), 90 * 60000);
+  assert.equal(P.duration('timer 45 s'), 45000);
+  assert.equal(P.duration('timer de meia hora') >= 0, true); // goes through the reminder reader
+  assert.equal(P.span(90 * 60000), '1 h 30');
+  assert.equal(P.left(62 * 1000), '1:02');
+  assert.equal(P.left(3723 * 1000), '1:02:03');
+});
+
+test('chat patterns: what she reads off a message', () => {
+  assert.ok(P.OPEN_ASK.test('abre o spotify'));
+  assert.ok(P.CLOSE_ASK.test('fecha o discord'));
+  assert.ok(P.SPOTIFY_ASK.exec('coloca Daft Punk no spotify')[1].includes('Daft Punk'));
+  assert.equal(P.songOf('a música de Queen'), 'Queen');
+  assert.ok(P.SHOT_ASK.test('tira um screenshot'));
+  assert.ok(P.fileTypes('meu projeto do after effects').includes('aep'));
+  assert.match(P.searched('capri, acha meu currículo'), /curr/);
+  assert.deepEqual(P.MEDIA_ASK.find(([, re]) => re.test('pula essa música')).slice(0, 1), ['next']);
+});
+
+// A canvas context that accepts anything and records the calls: enough to run the drawing code.
+const fakeCtx = () => {
+  const calls = [];
+  const target = { calls, measureText: () => ({ width: 10 }), createLinearGradient: () => ({ addColorStop() {} }), createRadialGradient: () => ({ addColorStop() {} }) };
+  return new Proxy(target, {
+    get: (t, k) => (k in t ? t[k] : (...args) => { calls.push(k); return args; }),
+    set: () => true,
+  });
+};
+
+test('fx: the drawing helpers still run after the split', async () => {
+  const fx = await import('../src/renderer/js/fx.js');
+  const shapes = await import('../src/renderer/js/fx-shapes.js');
+  assert.equal(fx.COLORS, shapes.COLORS);
+  assert.equal(fx.drawMask, shapes.drawMask);
+  assert.equal(typeof fx.FxLayer, 'function');
+  assert.ok(fx.GRAB_FRAMES.includes('grab'));
+  const ctx = fakeCtx();
+  shapes.drawMask(ctx, 100, 100, 1, { eyes: [1, 0.1], look: { x: 1, y: 0 } });
+  shapes.drawMask(ctx, 100, 100, 1, { flat: '#fff', spike: false });
+  shapes.drawEye(ctx, 50, 50, 20, 1, { x: 0.5, y: 0.5 });
+  shapes.cutEdges(ctx, 0.2, 0.2, 3);
+  shapes.cutBand(ctx, 0.5, 3);
+  shapes.cutHead(ctx, 100, 3);
+  assert.ok(ctx.calls.length > 20);
+  assert.equal(shapes.hash(3, 7), shapes.hash(3, 7));
+  assert.ok(shapes.hash(3, 7) >= 0 && shapes.hash(3, 7) < 1);
+});
+
+test('chip: loads with its shared drawing code', async () => {
+  const chip = await import('../src/renderer/js/chip.js');
+  assert.ok(Object.keys(chip).length > 0);
+});

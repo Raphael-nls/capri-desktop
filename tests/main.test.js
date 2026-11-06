@@ -26,6 +26,7 @@ const electron = {
     getApplicationNameForProtocol: () => '',
   },
   screen: { dipToScreenRect: (_w, r) => r },
+  BrowserWindow: class {},
 };
 let answer = () => psOutput; // what the fake PowerShell prints for each call (replaceable per test)
 const fakeChild = {
@@ -286,4 +287,22 @@ test('system.act: battery reads the charge and the charger', { skip: !WIN }, asy
   assert.deepEqual(await system.act({ action: 'info', what: 'battery' }), { percent: 10, charging: false });
   psOutput = '';
   assert.deepEqual(await system.act({ action: 'info', what: 'battery' }), { none: true });
+});
+
+// --- debug.js ----------------------------------------------------------------------------------
+
+test('debug routes: only in --dev, and the ones that exist', async () => {
+  const { create } = require('../src/main/debug');
+  const sent = [];
+  const trayMenu = { items: [{ label: 'Talk' }, { label: 'Language', submenu: { items: [{ label: 'English' }, { label: 'Português' }] } }, { type: 'separator' }] };
+  const handler = (dev) => create({ dev, root: 'C:\nowhere', overlay: () => null, trayMenu: () => trayMenu, sendCommand: (name) => sent.push(name) });
+
+  await assert.rejects(() => handler(false)('command', { name: 'x' }), /need --dev/);
+  assert.deepEqual(sent, []);
+
+  const dev = handler(true);
+  assert.deepEqual(await dev('command', { name: 'sit' }), { ok: true });
+  assert.deepEqual(sent, ['sit']);
+  assert.deepEqual((await dev('menu', {})).value, ['Talk', { Language: ['English', 'Português'] }]);
+  await assert.rejects(() => dev('nope', {}), /unknown debug route/);
 });
