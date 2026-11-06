@@ -94,7 +94,8 @@ export function parseWhen(text, now = Date.now()) {
         if (ampm === 'am' && h === 12) h = 0;
         if (!ampm && h < 12) {
           if (PM.test(text)) h += 12;
-          else if (!AM.test(text) && !TOMORROW.test(text) && h > 0) {
+          // "9h" is a 24-hour time (fr/pt/es): at 10:00 it means tomorrow morning, not 9 pm
+          else if (!AM.test(text) && !TOMORROW.test(text) && h > 0 && !/^\s*(?:à|a|as|às)?\s*\d{1,2}\s*h/i.test(m[0])) {
             // "at 6", said in the afternoon: the next 6 o'clock to come
             const at6 = new Date(now);
             at6.setHours(h, min, 0, 0);

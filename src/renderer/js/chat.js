@@ -8,6 +8,7 @@
 import { pick, fmt } from './util.js';
 import { ASSISTANT_NAMES } from './lines.js';
 import { parseReminder, parseWhen, clock } from './reminders.js';
+import { parseTask } from './tasks.js';
 
 const REMEMBER = 20; // messages she has in mind when answering
 const KEEP = 60;     // messages she remembers across restarts (memory.json)
@@ -247,6 +248,7 @@ export class Chat {
     this.onSetup = null; // (status) => void: she can't answer yet (app.js hands it to setup.js)
     this.onBetterModel = null; // () => void: a bigger model than the tiny one she's on (setup.js)
     this.reminders = null; // the reminders she keeps (reminders.js, from app.js)
+    this.tasks = null;     // her to-do list for you (tasks.js, from app.js)
     this.bond = null;      // how close she is to you (bond.js)
     this.jealousy = null;  // and how she takes your other AIs
     this.onMessage = null; // () => void: you said something to her
@@ -487,6 +489,8 @@ export class Chat {
       const when = w && Date.now() < w.until && count <= 6 && parseWhen(text);
       if (when && when.at > Date.now()) return { kind: 'remind', at: when.at, text: w.text };
     }
+    const task = this.tasks && parseTask(text);
+    if (task) return { kind: 'task', task };
     const name = NAME_ASK.exec(text)?.[1];
     if (name) return { kind: 'name', name };
     const memo = MEMO_ASK.exec(text)?.[1]?.trim();
@@ -697,6 +701,7 @@ export class Chat {
       const tr = this.brain.t.remind;
       return { line: fmt(r.text ? tr.set : tr.setBare, { time: clock(r.at, this.brain.lang), text: r.text }), face: 'smug', reminder: r.id };
     }
+    if (asked.kind === 'task') return { line: this.tasks.run(asked.task, this.brain.lang), face: asked.task.kind === 'list' ? 'look' : 'smug' };
     if (asked.kind === 'name') {
       custom.userName = asked.name; // her answer, being written now, already knows it
       this.host.setConfig({ userName: asked.name });
@@ -989,6 +994,11 @@ export class Chat {
       lines.push('You keep reminders for the user: when they ask you to remind them of something at a given time, your system sets it from their message as they send it (a line under your answer shows it). Just confirm it in a few words, in character, and never say you can\'t. If they didn\'t say when, ask them when.');
       const soon = this.reminders.upcoming.slice(0, 6);
       if (soon.length) lines.push(`Reminders you're keeping for them: ${soon.map((r) => `${clock(r.at, this.brain.lang)}${r.text ? ` (${r.text})` : ''}`).join('; ')}.`);
+    }
+    if (this.tasks) {
+      lines.push('You keep a to-do list for the user: when they ask you to note something, list their tasks or mark one done, your system does it from their message (a line under your answer shows it). Just confirm in a few words, in character.');
+      const open = this.tasks.summary();
+      if (open) lines.push(`Their pending tasks: ${open}.`);
     }
     lines.push('Your system also searches the user\'s files when they ask you to find one, searches the web when they ask, takes screenshots, and starts Roblox games by name: what it did shows under your answer, so never make up file names or results.');
     lines.push('Apart from that, you can\'t see the user\'s screen or files, and you can\'t touch anything else on their PC (settings, files): if asked, say plainly that you can\'t, in character, and don\'t pretend to.');

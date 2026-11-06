@@ -11,6 +11,7 @@ import { Setup } from './setup.js';
 import { Custom } from './custom.js';
 import { Bond, Jealousy } from './bond.js';
 import { Reminders, clock } from './reminders.js';
+import { Tasks } from './tasks.js';
 import { Look } from './look.js';
 import { Pc } from './pc.js';
 import { linesFor } from './lines.js';
@@ -252,6 +253,8 @@ async function boot() {
   brain.onRival = (key) => jealousy.onRivalEvent(key);
   const reminders = new Reminders({ host, list: config.reminders || [] });
   chat.reminders = reminders;
+  const tasks = new Tasks({ host, list: config.tasks || [] });
+  chat.tasks = tasks;
   chat.onMessage = () => bond.add('chat', 2);
   // looking at your screen (look.js): when you ask, or now and then if you turned it on
   const look = new Look({ capri, panel, brain, chat, guide, host, fx, voice, active: () => performance.now() - lastMove });
@@ -630,6 +633,7 @@ async function boot() {
     pc.enabled = cfg.pcReact !== false;
     wantsOut = cfg.visible !== false;
     reminders.sync(cfg.reminders); // one may have been cancelled from her menu
+    tasks.sync(cfg.tasks);
     capri.wander = cfg.wander;
     capri.possessWindows = cfg.possess;
     capri.restOn = cfg.rest || 'corner';
